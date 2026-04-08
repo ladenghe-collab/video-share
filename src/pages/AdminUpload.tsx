@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Upload, Link as LinkIcon, Check, Copy, Film, Trash2 } from "lucide-react";
+import { Upload, Link as LinkIcon, Check, Copy, Film, Trash2, ArrowRight } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/lib/supabase";
+import { Link } from "react-router-dom";
 
 interface UploadedVideo {
   id: string;
@@ -10,12 +11,13 @@ interface UploadedVideo {
   created_at: string;
 }
 
-export default function Home() {
+export default function AdminUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedCollection, setCopiedCollection] = useState(false);
   const [myVideos, setMyVideos] = useState<UploadedVideo[]>([]);
 
   // Load previously uploaded videos from localStorage
@@ -108,28 +110,71 @@ export default function Home() {
     }
   };
 
-  const handleCopyLink = (url: string) => {
+  const handleCopyLink = (url: string, type: 'single' | 'collection' = 'single') => {
     navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (type === 'collection') {
+      setCopiedCollection(true);
+      setTimeout(() => setCopiedCollection(false), 2000);
+    } else {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const getShareUrl = (id: string) => {
     return `${window.location.origin}/v/${id}`;
   };
 
+  const getCollectionUrl = () => {
+    return `${window.location.origin}/`;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <div className="max-w-3xl mx-auto p-6 pt-12">
-        <header className="text-center mb-12">
+      <div className="max-w-4xl mx-auto p-6 pt-12">
+        <header className="text-center mb-8">
           <div className="inline-flex items-center justify-center p-3 bg-blue-50 rounded-2xl mb-4 text-blue-600">
             <Film size={32} />
           </div>
-          <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">云端视频分享</h1>
-          <p className="text-slate-500 text-lg">上传您的视频，生成专属二维码，随时随地扫码观看。</p>
+          <h1 className="text-4xl font-bold text-slate-900 mb-3 tracking-tight">后台上传管理</h1>
+          <p className="text-slate-500 text-lg">在这里上传视频，并管理您的合集页面</p>
         </header>
 
+        {/* Collection QR Code Section - The main focus now */}
+        <div className="bg-blue-600 rounded-3xl shadow-md p-8 mb-10 text-white flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex-1 text-center md:text-left">
+            <h2 className="text-2xl font-bold mb-3">我的视频合集页</h2>
+            <p className="text-blue-100 mb-6">这是您的公共主页，任何人扫描右侧二维码，即可查看您上传的所有视频合集。</p>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="flex items-center gap-2 bg-blue-700/50 border border-blue-500/50 rounded-xl p-1 pl-4 w-full max-w-md">
+                <span className="text-white text-sm truncate flex-1">
+                  {getCollectionUrl()}
+                </span>
+                <button
+                  onClick={() => handleCopyLink(getCollectionUrl(), 'collection')}
+                  className="p-2.5 bg-blue-500 hover:bg-blue-400 rounded-lg transition-colors shrink-0"
+                  title="复制链接"
+                >
+                  {copiedCollection ? <Check size={18} /> : <Copy size={18} />}
+                </button>
+              </div>
+              <Link 
+                to="/" 
+                target="_blank"
+                className="flex items-center gap-2 px-5 py-3 bg-white text-blue-600 font-medium rounded-xl hover:bg-blue-50 transition-colors w-full sm:w-auto justify-center shrink-0"
+              >
+                访问主页 <ArrowRight size={18} />
+              </Link>
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-2xl shrink-0">
+            <QRCodeSVG value={getCollectionUrl()} size={140} level="H" />
+          </div>
+        </div>
+
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 mb-12">
+          <h3 className="text-xl font-bold text-slate-900 mb-6">上传新视频</h3>
           <div className="space-y-6">
             {!uploadedVideo ? (
               <div className="border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center hover:bg-slate-50 transition-colors">
@@ -157,58 +202,44 @@ export default function Home() {
                 </label>
               </div>
             ) : (
-              <div className="text-center py-6">
-                <div className="inline-flex items-center justify-center p-3 bg-green-50 text-green-600 rounded-full mb-6">
-                  <Check size={32} />
+              <div className="text-center py-6 bg-slate-50 rounded-2xl border border-slate-200">
+                <div className="inline-flex items-center justify-center p-3 bg-green-50 text-green-600 rounded-full mb-4">
+                  <Check size={24} />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">上传成功！</h2>
-                <p className="text-slate-500 mb-8">您的视频已安全保存到云端</p>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">上传成功！</h2>
+                <p className="text-slate-500 mb-6">该视频已自动添加到您的合集主页中</p>
 
-                <div className="flex flex-col md:flex-row items-center justify-center gap-10">
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm inline-block">
-                    <QRCodeSVG value={getShareUrl(uploadedVideo.id)} size={200} level="H" />
+                <div className="text-left space-y-4 max-w-sm mx-auto bg-white p-6 rounded-xl border border-slate-200">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-slate-500">视频标题</p>
+                    <p className="text-slate-900 font-medium truncate">{uploadedVideo.title}</p>
+                  </div>
+                  
+                  <div className="space-y-2 pt-2">
+                    <p className="text-sm font-medium text-slate-500">单视频直达链接 (可选)</p>
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 pl-4">
+                      <span className="text-slate-600 text-sm truncate flex-1">
+                        {getShareUrl(uploadedVideo.id)}
+                      </span>
+                      <button
+                        onClick={() => handleCopyLink(getShareUrl(uploadedVideo.id), 'single')}
+                        className="p-2.5 bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-colors shrink-0"
+                        title="复制链接"
+                      >
+                        {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="text-left space-y-4 max-w-sm">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">视频标题</p>
-                      <p className="text-slate-900 font-medium truncate">{uploadedVideo.title}</p>
-                    </div>
-                    
-                    <div className="space-y-2 pt-2">
-                      <p className="text-sm font-medium text-slate-500">分享链接</p>
-                      <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 pl-4">
-                        <span className="text-slate-600 text-sm truncate flex-1">
-                          {getShareUrl(uploadedVideo.id)}
-                        </span>
-                        <button
-                          onClick={() => handleCopyLink(getShareUrl(uploadedVideo.id))}
-                          className="p-2.5 bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-colors shrink-0"
-                          title="复制链接"
-                        >
-                          {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                        </button>
-                        <a 
-                          href={getShareUrl(uploadedVideo.id)} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="p-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shrink-0"
-                        >
-                          <LinkIcon size={18} />
-                        </a>
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={() => {
-                        setUploadedVideo(null);
-                        setFile(null);
-                      }}
-                      className="w-full mt-4 py-3 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors"
-                    >
-                      上传新视频
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => {
+                      setUploadedVideo(null);
+                      setFile(null);
+                    }}
+                    className="w-full mt-4 py-3 bg-blue-50 text-blue-700 font-medium rounded-xl hover:bg-blue-100 transition-colors"
+                  >
+                    继续上传
+                  </button>
                 </div>
               </div>
             )}
@@ -240,13 +271,10 @@ export default function Home() {
         {/* Video History List */}
         {myVideos.length > 0 && (
           <div>
-            <h3 className="text-xl font-bold text-slate-900 mb-4 px-2">我的视频记录</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-4 px-2">最近上传记录</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {myVideos.map(video => (
                 <div key={video.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 hover:shadow-md transition-shadow">
-                  <div className="bg-slate-50 p-2 rounded-xl shrink-0">
-                    <QRCodeSVG value={getShareUrl(video.id)} size={60} level="M" />
-                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-slate-900 font-medium truncate mb-1" title={video.title}>{video.title}</p>
                     <p className="text-slate-400 text-xs mb-3">
@@ -266,6 +294,7 @@ export default function Home() {
                       <button 
                         onClick={() => removeFromLocal(video.id)}
                         className="text-xs font-medium text-red-600 bg-red-50 px-2.5 py-1.5 rounded-lg hover:bg-red-100 transition-colors ml-auto"
+                        title="仅从本地记录移除，不删除云端"
                       >
                         <Trash2 size={14} />
                       </button>
